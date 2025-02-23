@@ -2,28 +2,40 @@ document.getElementById('dreamForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const age = document.getElementById('age').value;
-    const dreamJob = document.getElementById('dreamJob').value;
+    let dreamJob = document.getElementById('dreamJob').value;
+    const customJob = document.getElementById('customJob').value;
     const photo = document.getElementById('photo').files[0];
     
-    if (!photo) return;
+    // 如果用户填了自定义职业，用它替代下拉框
+    if (customJob) dreamJob = customJob;
+    if (!photo || !dreamJob) return;
     
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
     img.onload = function() {
-        // 清空画布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, 300, 200); // 用户照片在上半部分
         
-        // 画用户照片（简单缩放到顶部）
-        ctx.drawImage(img, 0, 0, 300, 200);
+        // 职业模板（简单颜色和文字，后期加图片）
+        let jobStyle = {};
+        switch (dreamJob.toLowerCase()) {
+            case 'astronaut': jobStyle = { color: 'gray', text: 'Space Explorer' }; break;
+            case 'doctor': jobStyle = { color: '#87CEEB', text: 'Healing Expert' }; break;
+            case 'singer': jobStyle = { color: 'purple', text: 'Music Star' }; break;
+            case 'programmer': jobStyle = { color: '#333', text: 'Code Master' }; break;
+            case 'soldier': jobStyle = { color: 'green', text: 'Brave Defender' }; break;
+            case 'teacher': jobStyle = { color: 'brown', text: 'Knowledge Guide' }; break;
+            case 'chef': jobStyle = { color: 'orange', text: 'Culinary Artist' }; break;
+            default: jobStyle = { color: '#666', text: 'Dream Chaser' }; // 自定义职业默认
+        }
         
-        // 根据职业画模板（这里先用简单矩形代替）
-        ctx.fillStyle = dreamJob === 'astronaut' ? 'gray' : 'blue';
+        ctx.fillStyle = jobStyle.color;
         ctx.fillRect(0, 200, 300, 200);
         ctx.fillStyle = 'white';
         ctx.font = '20px Arial';
-        ctx.fillText(`Age: ${age} - ${dreamJob}`, 10, 250);
+        ctx.fillText(`${jobStyle.text} (Age: ${age})`, 10, 250);
         
         document.getElementById('result').style.display = 'block';
     };
