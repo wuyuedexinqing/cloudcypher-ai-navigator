@@ -1,0 +1,2 @@
+# cloudcypher-ai-navigator
+deepseek
