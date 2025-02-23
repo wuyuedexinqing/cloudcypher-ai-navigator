@@ -1,7 +1,7 @@
 // 初始化 Supabase
-const supabaseUrl = 'https://gkhrdkgwttlntcokytas.supabase.co'; // 替换成你的 URL
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdraHJka2d3dHRsbnRjb2t5dGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwMjY2NDMsImV4cCI6MjA1NDYwMjY0M30.oE5eGbbaLZlVAPkzdROvJ2glhwxG-JkHvKaO9rzXKI4'; // 替换成你的 Anon Key
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = 'https://gkhrdkgwttlntcokytas.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdraHJka2d3dHRsbnRjb2t5dGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwMjY2NDMsImV4cCI6MjA1NDYwMjY0M30.oE5eGbbaLZlVAPkzdROvJ2glhwxG-JkHvKaO9rzXKI4';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 document.getElementById('dreamForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -26,9 +26,7 @@ document.getElementById('dreamForm').addEventListener('submit', async function(e
     }
     
     // 获取公开 URL
-    const { publicUrl } = supabase.storage
-        .from('user-uploads')
-        .getPublicUrl(fileName).data;
+    const { publicUrl } = supabase.storage.from('user-uploads').getPublicUrl(fileName);
     
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
