@@ -1,4 +1,9 @@
-document.getElementById('dreamForm').addEventListener('submit', function(e) {
+// 初始化 Supabase
+const supabaseUrl = 'https://gkhrdkgwttlntcokytas.supabase.co'; // 替换成你的 URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdraHJka2d3dHRsbnRjb2t5dGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwMjY2NDMsImV4cCI6MjA1NDYwMjY0M30.oE5eGbbaLZlVAPkzdROvJ2glhwxG-JkHvKaO9rzXKI4'; // 替换成你的 Anon Key
+const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+document.getElementById('dreamForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const age = document.getElementById('age').value;
@@ -6,9 +11,24 @@ document.getElementById('dreamForm').addEventListener('submit', function(e) {
     const customJob = document.getElementById('customJob').value;
     const photo = document.getElementById('photo').files[0];
     
-    // 如果用户填了自定义职业，用它替代下拉框
     if (customJob) dreamJob = customJob;
     if (!photo || !dreamJob) return;
+    
+    // 上传照片到 Supabase
+    const fileName = `${Date.now()}-${photo.name}`;
+    const { data, error } = await supabase.storage
+        .from('user-uploads')
+        .upload(fileName, photo);
+    
+    if (error) {
+        console.error('Upload failed:', error);
+        return;
+    }
+    
+    // 获取公开 URL
+    const { publicUrl } = supabase.storage
+        .from('user-uploads')
+        .getPublicUrl(fileName).data;
     
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -16,9 +36,8 @@ document.getElementById('dreamForm').addEventListener('submit', function(e) {
     
     img.onload = function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, 300, 200); // 用户照片在上半部分
+        ctx.drawImage(img, 0, 0, 300, 200);
         
-        // 职业模板（简单颜色和文字，后期加图片）
         let jobStyle = {};
         switch (dreamJob.toLowerCase()) {
             case 'astronaut': jobStyle = { color: 'gray', text: 'Space Explorer' }; break;
@@ -28,7 +47,7 @@ document.getElementById('dreamForm').addEventListener('submit', function(e) {
             case 'soldier': jobStyle = { color: 'green', text: 'Brave Defender' }; break;
             case 'teacher': jobStyle = { color: 'brown', text: 'Knowledge Guide' }; break;
             case 'chef': jobStyle = { color: 'orange', text: 'Culinary Artist' }; break;
-            default: jobStyle = { color: '#666', text: 'Dream Chaser' }; // 自定义职业默认
+            default: jobStyle = { color: '#666', text: 'Dream Chaser' };
         }
         
         ctx.fillStyle = jobStyle.color;
@@ -40,7 +59,7 @@ document.getElementById('dreamForm').addEventListener('submit', function(e) {
         document.getElementById('result').style.display = 'block';
     };
     
-    img.src = URL.createObjectURL(photo);
+    img.src = publicUrl; // 用 Supabase 的 URL 加载图片
 });
 
 document.getElementById('download').addEventListener('click', function() {
