@@ -28,39 +28,224 @@ function initializeDatePickers() {
 
 // Fetch Gold ETF data (GLD)
 async function fetchGoldETFData(startDate, endDate, timeframe) {
-    // Using Alpha Vantage API for historical data
-    // Note: In a real implementation, you would need an API key
     const apiKey = 'XIK06MDH33YFE33V'; // Replace with your actual API key
     const symbol = 'GLD';
     
     try {
-        // For demo purposes, we'll simulate with random data
-        // In a real app, you would fetch from an API like:
-        // `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}&outputsize=full`
+        let url;
+        // Select appropriate API endpoint based on timeframe
+        if (timeframe === 'day') {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}&outputsize=full`;
+        } else if (timeframe === 'week') {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=${symbol}&apikey=${apiKey}`;
+        } else {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${apiKey}`;
+        }
         
-        // Generate simulated data for demonstration
-        const data = generateSimulatedGoldData(startDate, endDate, timeframe);
-        return data;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Parse Alpha Vantage response
+        const timeSeries = timeframe === 'day' 
+            ? data['Time Series (Daily)'] 
+            : timeframe === 'week'
+                ? data['Weekly Time Series']
+                : data['Monthly Time Series'];
+        
+        if (!timeSeries) {
+            console.error('Invalid response format from Alpha Vantage:', data);
+            return generateSimulatedGoldData(startDate, endDate, timeframe); // Fallback to simulated data
+        }
+        
+        const formattedData = [];
+        for (const date in timeSeries) {
+            // Check if date is within specified range
+            if (date >= startDate && date <= endDate) {
+                formattedData.push({
+                    date: new Date(date),
+                    price: parseFloat(timeSeries[date]['4. close']),
+                    volume: parseFloat(timeSeries[date]['5. volume'])
+                });
+            }
+        }
+        
+        // Sort by date
+        return formattedData.sort((a, b) => a.date - b.date);
+        
     } catch (error) {
         console.error('Error fetching Gold ETF data:', error);
-        return [];
+        // Fallback to simulated data if API fails
+        return generateSimulatedGoldData(startDate, endDate, timeframe);
     }
 }
 
 // Fetch Bitcoin ETF data (IBIT)
 async function fetchBitcoinETFData(startDate, endDate, timeframe) {
-    // For IBIT, since it's newer, we might need a different API or approach
-    // For demo purposes, we'll simulate with random data
+    const apiKey = 'XIK06MDH33YFE33V'; // Replace with your actual API key
+    const symbol = 'IBIT';
+    
     try {
-        const data = generateSimulatedBitcoinData(startDate, endDate, timeframe);
-        return data;
+        let url;
+        // Select appropriate API endpoint based on timeframe
+        if (timeframe === 'day') {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}&outputsize=full`;
+        } else if (timeframe === 'week') {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=${symbol}&apikey=${apiKey}`;
+        } else {
+            url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${apiKey}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Parse Alpha Vantage response
+        const timeSeries = timeframe === 'day' 
+            ? data['Time Series (Daily)'] 
+            : timeframe === 'week'
+                ? data['Weekly Time Series']
+                : data['Monthly Time Series'];
+        
+        if (!timeSeries) {
+            console.error('Invalid response format from Alpha Vantage:', data);
+            return generateSimulatedBitcoinData(startDate, endDate, timeframe); // Fallback to simulated data
+        }
+        
+        const formattedData = [];
+        for (const date in timeSeries) {
+            // Check if date is within specified range
+            if (date >= startDate && date <= endDate) {
+                formattedData.push({
+                    date: new Date(date),
+                    price: parseFloat(timeSeries[date]['4. close']),
+                    volume: parseFloat(timeSeries[date]['5. volume'])
+                });
+            }
+        }
+        
+        // Sort by date
+        return formattedData.sort((a, b) => a.date - b.date);
+        
     } catch (error) {
         console.error('Error fetching Bitcoin ETF data:', error);
+        // Fallback to simulated data if API fails
+        return generateSimulatedBitcoinData(startDate, endDate, timeframe);
+    }
+}
+
+// Process data for quarter and year views from monthly data
+async function getAggregatedData(symbol, startDate, endDate, timeframe) {
+    // For quarter and year views, we'll fetch monthly data and aggregate it
+    const apiKey = 'XIK06MDH33YFE33V';
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${apiKey}`;
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const monthlyData = data['Monthly Time Series'];
+        
+        if (!monthlyData) {
+            throw new Error('Invalid data format received');
+        }
+        
+        // Convert monthly data to array format
+        const dataArray = [];
+        for (const date in monthlyData) {
+            if (date >= startDate && date <= endDate) {
+                dataArray.push({
+                    date: new Date(date),
+                    price: parseFloat(monthlyData[date]['4. close']),
+                    volume: parseFloat(monthlyData[date]['5. volume'])
+                });
+            }
+        }
+        
+        // Sort by date
+        dataArray.sort((a, b) => a.date - b.date);
+        
+        // If timeframe is quarter or year, aggregate the data
+        if (timeframe === 'quarter' || timeframe === 'year') {
+            const aggregatedData = [];
+            let currentPeriodData = [];
+            let currentPeriodStart = null;
+            
+            dataArray.forEach(item => {
+                const itemDate = item.date;
+                
+                if (timeframe === 'quarter') {
+                    // Check if this is a new quarter
+                    const itemQuarter = Math.floor(itemDate.getMonth() / 3);
+                    const itemYear = itemDate.getFullYear();
+                    const periodKey = `${itemYear}-Q${itemQuarter + 1}`;
+                    
+                    if (!currentPeriodStart) {
+                        currentPeriodStart = periodKey;
+                    } else if (currentPeriodStart !== periodKey) {
+                        // Process the previous quarter
+                        if (currentPeriodData.length > 0) {
+                            const avgPrice = currentPeriodData.reduce((sum, d) => sum + d.price, 0) / currentPeriodData.length;
+                            const totalVolume = currentPeriodData.reduce((sum, d) => sum + d.volume, 0);
+                            
+                            aggregatedData.push({
+                                date: new Date(currentPeriodData[0].date), // First date of the quarter
+                                price: avgPrice,
+                                volume: totalVolume
+                            });
+                        }
+                        
+                        currentPeriodData = [];
+                        currentPeriodStart = periodKey;
+                    }
+                } else if (timeframe === 'year') {
+                    // Check if this is a new year
+                    const itemYear = itemDate.getFullYear();
+                    
+                    if (!currentPeriodStart) {
+                        currentPeriodStart = itemYear;
+                    } else if (currentPeriodStart !== itemYear) {
+                        // Process the previous year
+                        if (currentPeriodData.length > 0) {
+                            const avgPrice = currentPeriodData.reduce((sum, d) => sum + d.price, 0) / currentPeriodData.length;
+                            const totalVolume = currentPeriodData.reduce((sum, d) => sum + d.volume, 0);
+                            
+                            aggregatedData.push({
+                                date: new Date(currentPeriodData[0].date), // First date of the year
+                                price: avgPrice,
+                                volume: totalVolume
+                            });
+                        }
+                        
+                        currentPeriodData = [];
+                        currentPeriodStart = itemYear;
+                    }
+                }
+                
+                currentPeriodData.push(item);
+            });
+            
+            // Process the last period
+            if (currentPeriodData.length > 0) {
+                const avgPrice = currentPeriodData.reduce((sum, d) => sum + d.price, 0) / currentPeriodData.length;
+                const totalVolume = currentPeriodData.reduce((sum, d) => sum + d.volume, 0);
+                
+                aggregatedData.push({
+                    date: new Date(currentPeriodData[0].date),
+                    price: avgPrice,
+                    volume: totalVolume
+                });
+            }
+            
+            return aggregatedData;
+        }
+        
+        return dataArray;
+        
+    } catch (error) {
+        console.error(`Error fetching aggregated data for ${symbol}:`, error);
         return [];
     }
 }
 
-// Generate simulated Gold ETF data
+// Generate simulated Gold ETF data (as fallback)
 function generateSimulatedGoldData(startDate, endDate, timeframe) {
     let start = new Date(startDate);
     const end = new Date(endDate);
@@ -103,7 +288,7 @@ function generateSimulatedGoldData(startDate, endDate, timeframe) {
     return data;
 }
 
-// Generate simulated Bitcoin ETF data
+// Generate simulated Bitcoin ETF data (as fallback)
 function generateSimulatedBitcoinData(startDate, endDate, timeframe) {
     let start = new Date(startDate);
     const end = new Date(endDate);
@@ -299,23 +484,86 @@ async function updateData() {
     const endDate = document.getElementById('endDate').value;
     const timeframe = document.getElementById('timeframe').value;
     
-    // Fetch data
-    goldData = await fetchGoldETFData(startDate, endDate, timeframe);
-    btcData = await fetchBitcoinETFData(startDate, endDate, timeframe);
+    // Show loading indicator
+    document.querySelector('.chart-container').classList.add('loading');
     
-    // Make sure both datasets have the same number of points
-    // (In a real implementation, you might need more sophisticated handling)
-    const minLength = Math.min(goldData.length, btcData.length);
-    goldData = goldData.slice(0, minLength);
-    btcData = btcData.slice(0, minLength);
-    
-    // Update chart and table
-    createChart(goldData, btcData);
-    updateComparisonTable(goldData, btcData);
+    try {
+        // Fetch data based on timeframe
+        if (timeframe === 'quarter' || timeframe === 'year') {
+            // For quarter and year views, we need to aggregate monthly data
+            goldData = await getAggregatedData('GLD', startDate, endDate, timeframe);
+            btcData = await getAggregatedData('IBIT', startDate, endDate, timeframe);
+        } else {
+            // For day, week, and month views, fetch directly
+            goldData = await fetchGoldETFData(startDate, endDate, timeframe);
+            btcData = await fetchBitcoinETFData(startDate, endDate, timeframe);
+        }
+        
+        // Handle case where API returns empty data
+        if (goldData.length === 0) {
+            goldData = generateSimulatedGoldData(startDate, endDate, timeframe);
+            console.warn('Using simulated gold data due to empty API response');
+        }
+        
+        if (btcData.length === 0) {
+            btcData = generateSimulatedBitcoinData(startDate, endDate, timeframe);
+            console.warn('Using simulated bitcoin data due to empty API response');
+        }
+        
+        // Make sure both datasets cover similar date ranges
+        // This is important since IBIT was launched in January 2024
+        const goldStart = goldData[0].date;
+        const btcStart = btcData[0].date;
+        
+        // If one dataset starts later than the other, trim the earlier one
+        if (goldStart < btcStart) {
+            goldData = goldData.filter(item => item.date >= btcStart);
+        } else if (btcStart < goldStart) {
+            btcData = btcData.filter(item => item.date >= goldStart);
+        }
+        
+        // Update chart and table
+        createChart(goldData, btcData);
+        updateComparisonTable(goldData, btcData);
+    } catch (error) {
+        console.error('Error updating data:', error);
+        alert('Error loading data. Using simulated data instead.');
+        
+        // Fallback to simulated data
+        goldData = generateSimulatedGoldData(startDate, endDate, timeframe);
+        btcData = generateSimulatedBitcoinData(startDate, endDate, timeframe);
+        
+        createChart(goldData, btcData);
+        updateComparisonTable(goldData, btcData);
+    } finally {
+        // Hide loading indicator
+        document.querySelector('.chart-container').classList.remove('loading');
+    }
 }
 
-// Event listeners
+// Add loading animation CSS
 document.addEventListener('DOMContentLoaded', function() {
+    // Create a style element for loading animation
+    const style = document.createElement('style');
+    style.textContent = `
+        .chart-container.loading::after {
+            content: "Loading data...";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container {
+            position: relative;
+        }
+    `;
+    document.head.appendChild(style);
+    
     initializeDatePickers();
     
     // Add event listeners
