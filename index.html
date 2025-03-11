@@ -3,176 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ETF Trend Analysis | GLD vs IBIT</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
-        .controls { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
-        .time-btn { 
-            padding: 8px 16px;
-            background: #e0e0e0;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .time-btn.active { 
-            background: #007bff;
-            color: white;
-        }
-        .chart-container { 
-            margin: 40px 0; 
-            background: #f8f9fa; 
-            padding: 20px;
-            position: relative;
-            height: 600px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        h1 { color: #333; font-size: 24px; margin-bottom: 20px; }
-    </style>
+    <title>Gold ETF vs BTC ETF Comparison</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 <body>
-    <h1>ETF Trend Analysis: Gold ETF (GLD) vs Bitcoin ETF (IBIT)</h1>
-    <div class="controls">
-        <button class="time-btn active" data-granularity="daily">Daily</button>
-        <button class="time-btn" data-granularity="weekly">Weekly</button>
-        <button class="time-btn" data-granularity="monthly">Monthly</button>
-        <button class="time-btn" data-granularity="quarterly">Quarterly</button>
-        <button class="time-btn" data-granularity="yearly">Yearly</button>
+    <div class="container">
+        <h1>Gold ETF vs Bitcoin ETF Performance Comparison</h1>
+        
+        <div class="chart-controls">
+            <div class="time-selector">
+                <label for="timeframe">Time Frame:</label>
+                <select id="timeframe">
+                    <option value="day">Day</option>
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                    <option value="quarter">Quarter</option>
+                    <option value="year">Year</option>
+                </select>
+            </div>
+            <div class="date-range">
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate">
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate">
+                <button id="updateChart">Update Chart</button>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="comparison-chart"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color gold"></div>
+                <span>Gold ETF (GLD) - Left Axis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color btc"></div>
+                <span>Bitcoin ETF (IBIT) - Right Axis</span>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2>Data Comparison</h2>
+            <table id="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Gold ETF (GLD)</th>
+                        <th>Bitcoin ETF (IBIT)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Current Price</td>
+                        <td id="gold-price">-</td>
+                        <td id="btc-price">-</td>
+                    </tr>
+                    <tr>
+                        <td>% Change (Selected Period)</td>
+                        <td id="gold-change">-</td>
+                        <td id="btc-change">-</td>
+                    </tr>
+                    <tr>
+                        <td>Trading Volume (Avg)</td>
+                        <td id="gold-volume">-</td>
+                        <td id="btc-volume">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="chart-container">
-        <canvas id="comparisonChart"></canvas>
-    </div>
-
-    <script>
-        const API_KEY = 'ALPHA_VANTAGE_KEY';  // Replace with your actual API Key
-        let currentChart = null;
-
-        // Data processors for different time granularities
-        const granularityProcessors = {
-            daily: data => data,
-            weekly: data => {
-                const weeklyData = [];
-                for (let i = 0; i < data.length; i += 7) {
-                    weeklyData.push(data[i]);
-                }
-                return weeklyData;
-            },
-            monthly: data => {
-                const monthlyData = {};
-                data.forEach(item => {
-                    const monthKey = item.date.substr(0, 7);
-                    monthlyData[monthKey] = item;
-                });
-                return Object.values(monthlyData);
-            },
-            quarterly: data => {
-                const quarterlyData = {};
-                data.forEach(item => {
-                    const year = item.date.substr(0, 4);
-                    const month = item.date.substr(5, 2);
-                    const quarter = `${year}-Q${Math.ceil(month / 3)}`;
-                    quarterlyData[quarter] = item;
-                });
-                return Object.values(quarterlyData);
-            },
-            yearly: data => {
-                const yearlyData = {};
-                data.forEach(item => {
-                    const yearKey = item.date.substr(0, 4);
-                    yearlyData[yearKey] = item;
-                });
-                return Object.values(yearlyData);
-            }
-        };
-
-        // Fetch full historical data
-        async function fetchFullHistory(symbol) {
-            const response = await fetch(
-                `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=full&apikey=${API_KEY}`
-            );
-            const rawData = await response.json();
-            return Object.entries(rawData['Time Series (Daily)'])
-                .map(([date, values]) => ({
-                    date,
-                    price: parseFloat(values['4. close'])
-                }))
-                .reverse();
-        }
-
-        // Process data based on selected granularity
-        function processData(data, granularity) {
-            return granularityProcessors[granularity](data);
-        }
-
-        // Create or update the comparison chart
-        function createComparisonChart(goldData, btcData, granularity) {
-            const ctx = document.getElementById('comparisonChart').getContext('2d');
-            if (currentChart) currentChart.destroy();
-
-            currentChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: goldData.map(d => d.date),
-                    datasets: [
-                        {
-                            label: 'Gold ETF (GLD)',
-                            data: goldData.map(d => d.price),
-                            borderColor: '#FFD700',
-                            tension: 0.2
-                        },
-                        {
-                            label: 'Bitcoin ETF (IBIT)',
-                            data: btcData.map(d => d.price),
-                            borderColor: '#F7931A',
-                            tension: 0.2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { 
-                        y: { 
-                            title: { 
-                                display: true, 
-                                text: 'Price (USD)'
-                            } 
-                        }
-                    }
-                }
-            });
-        }
-
-        // Initialize chart with default granularity
-        async function initChart(granularity = 'daily') {
-            try {
-                const [rawGold, rawBTC] = await Promise.all([
-                    fetchFullHistory('GLD'),
-                    fetchFullHistory('IBIT')  // Using IBIT for Bitcoin ETF
-                ]);
-                createComparisonChart(
-                    processData(rawGold, granularity),
-                    processData(rawBTC, granularity),
-                    granularity
-                );
-            } catch (error) {
-                console.error('Failed to load data:', error);
-            }
-        }
-
-        // Add event listeners for granularity buttons
-        document.querySelectorAll('.time-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                initChart(btn.dataset.granularity);
-            });
-        });
-
-        // Initialize with daily data
-        initChart();
-    </script>
+    
+    <script src="script.js"></script>
 </body>
 </html>
