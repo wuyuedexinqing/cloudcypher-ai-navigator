@@ -30,7 +30,7 @@ function initializeDatePickers() {
 async function fetchGoldETFData(startDate, endDate, timeframe) {
     // Using Alpha Vantage API for historical data
     // Note: In a real implementation, you would need an API key
-    const apiKey = 'YOUR_ALPHA_VANTAGE_API_KEY'; // Replace with your actual API key
+    const apiKey = 'XIK06MDH33YFE33V'; // Replace with your actual API key
     const symbol = 'GLD';
     
     try {
