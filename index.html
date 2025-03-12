@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold ETF vs Bitcoin ETF Performance Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .input-field {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #2980b9;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comparison-table th {
+            background-color: #f8f8f8;
+            font-weight: 600;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gold ETF vs Bitcoin ETF Performance Comparison</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate" class="input-field">
+            </div>
+            <div class="control-group">
+                <label for="timeframe">Timeframe:</label>
+                <select id="timeframe" class="input-field">
+                    <option value="day">Daily</option>
+                    <option value="week">Weekly</option>
+                    <option value="month">Monthly</option>
+                    <option value="quarter">Quarterly</option>
+                    <option value="year">Yearly</option>
+                </select>
+            </div>
+            <button id="update-button" class="button">Update Chart</button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="comparison-chart"></canvas>
+        </div>
+        
+        <table class="comparison-table" id="comparison-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Gold ETF (GLD)</th>
+                    <th>Bitcoin ETF (IBIT)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Current Price</td>
+                    <td id="gold-price">-</td>
+                    <td id="btc-price">-</td>
+                </tr>
+                <tr>
+                    <td>Change Since Launch</td>
+                    <td id="gold-change">-</td>
+                    <td id="btc-change">-</td>
+                </tr>
+                <tr>
+                    <td>Avg. Trading Volume</td>
+                    <td id="gold-volume">-</td>
+                    <td id="btc-volume">-</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            <p>Data source: Alpha Vantage API. Last updated: <span id="last-updated"></span></p>
+            <p>Note: If Alpha Vantage API fails, simulated data will be used for demonstration purposes.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Set current date in the footer
+        document.getElementById('last-updated').textContent = new Date().toLocaleDateString();
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
